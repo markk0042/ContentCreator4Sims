@@ -1,0 +1,40 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg-deep: #0f0a1a;
+  --accent-gold: #e8c547;
+  --accent-violet: #9b6dff;
+}
+
+body {
+  @apply min-h-screen bg-night-950 font-body text-white antialiased;
+  background-image:
+    radial-gradient(ellipse 80% 50% at 50% -20%, rgba(155, 109, 255, 0.25), transparent),
+    radial-gradient(circle at 90% 80%, rgba(244, 164, 208, 0.12), transparent),
+    radial-gradient(circle at 10% 70%, rgba(126, 224, 201, 0.08), transparent);
+}
+
+@layer components {
+  .card-enchant {
+    @apply rounded-2xl border border-white/10 bg-night-900/80 backdrop-blur-md shadow-glow;
+  }
+  .btn-primary {
+    @apply rounded-xl bg-gradient-to-r from-enchant-violet to-enchant-pink px-6 py-3 font-semibold text-white shadow-glow transition hover:scale-[1.02] hover:shadow-gold disabled:opacity-50 disabled:hover:scale-100;
+  }
+  .btn-secondary {
+    @apply rounded-xl border border-enchant-gold/40 bg-night-800/60 px-5 py-2.5 text-enchant-gold transition hover:border-enchant-gold hover:bg-night-800;
+  }
+  .landing-bg {
+  background-image:
+    radial-gradient(ellipse 100% 80% at 50% -30%, rgba(155, 109, 255, 0.35), transparent 55%),
+    radial-gradient(circle at 85% 15%, rgba(244, 164, 208, 0.18), transparent 40%),
+    radial-gradient(circle at 15% 85%, rgba(126, 224, 201, 0.12), transparent 45%),
+    radial-gradient(circle at 50% 50%, rgba(232, 197, 71, 0.04), transparent 70%);
+  }
+}
+
+html {
+  scroll-behavior: smooth;
+}

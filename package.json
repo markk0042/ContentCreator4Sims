@@ -1,0 +1,14 @@
+{
+  "name": "content-creator-4-sims",
+  "private": true,
+  "workspaces": ["apps/web"],
+  "scripts": {
+    "dev": "npm run dev --workspace=apps/web",
+    "dev:worker": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/start-worker.ps1",
+    "dev:stop": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/stop-dev.ps1",
+    "install:texconv": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/install-texconv.ps1",
+    "setup:blender": "python blender/scripts/build_scenes.py",
+    "setup:templates": "python scripts/generate_dev_templates.py",
+    "setup": "npm install && python -m pip install -r services/worker/requirements.txt && npm run setup:blender && npm run setup:templates"
+  }
+}

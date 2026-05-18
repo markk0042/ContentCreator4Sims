@@ -1,0 +1,105 @@
+{
+  "version": 1,
+  "templates": [
+    {
+      "id": "wall_art",
+      "name": "Wall Art / Poster",
+      "description": "Replace the diffuse texture on a framed wall poster template.",
+      "category": "decor",
+      "blenderScene": "wall_art.blend",
+      "textureWidth": 512,
+      "textureHeight": 512,
+      "basePackage": "bases/wall_art.package",
+      "textureResource": {
+        "type": "0x2f7d0006",
+        "group": "0x00000000",
+        "instance": "0x8000000000000001"
+      },
+      "installGuideId": "wall_art"
+    },
+    {
+      "id": "rug",
+      "name": "PS Flokati Rug",
+      "description": "Licensed Flokati-style rug — your image replaces all 33 color swatches.",
+      "category": "decor",
+      "blenderScene": "rug.blend",
+      "textureWidth": 512,
+      "textureHeight": 512,
+      "textureFormat": "dds",
+      "basePackage": "bases/rug.package",
+      "textureResource": {
+        "type": "0x00b2d882",
+        "group": "0x80000000",
+        "instance": "0x98873148ec809b17"
+      },
+      "textureInstances": [
+        "0x98873148ec809b17",
+        "0xb7c7c4efd4423433",
+        "0x81f007d6e2fa73f6",
+        "0x8ec5849945568a81",
+        "0xebce08f3126f5cca",
+        "0xb795daed18e493b9",
+        "0x8a9d8116349250e0",
+        "0xdea5eec266aefa88",
+        "0xac430dc9947b45b5",
+        "0xb2acc820cd06f158",
+        "0xb88d78399e623028",
+        "0x953a20ccf09a5d1d",
+        "0x9268f8750b652d30",
+        "0xda429e509efc1f2b",
+        "0xfa34e9c2bdfbcbcb",
+        "0xa71f6b65310cc927",
+        "0xbd91979ea5a9720f",
+        "0xee1a2459e533721f",
+        "0xd06e3a28151f2e82",
+        "0xbede8d235d880f22",
+        "0xeba5facc369df66c",
+        "0x96276997166ed581",
+        "0xd9293f85dd7f50bf",
+        "0xca694374f1c691ce",
+        "0xf00f770801456015",
+        "0x9fd43b7fc748280e",
+        "0xd1e5b3ab0e6e6bb8",
+        "0xdcb46128aad1f743",
+        "0xac23071f84c67cfc",
+        "0xcb4fc8d4b9194710",
+        "0xfd32c98ddd2cd1b4",
+        "0xc0e7e67587340d88",
+        "0xf1646e6782de345f"
+      ],
+      "installGuideId": "rug"
+    },
+    {
+      "id": "tshirt_graphic",
+      "name": "T-Shirt Graphic",
+      "description": "Graphic overlay for a t-shirt recolor template.",
+      "category": "cas",
+      "blenderScene": "tshirt_graphic.blend",
+      "textureWidth": 512,
+      "textureHeight": 512,
+      "basePackage": "bases/tshirt_graphic.package",
+      "textureResource": {
+        "type": "0x2f7d0006",
+        "group": "0x00000000",
+        "instance": "0x8000000000000003"
+      },
+      "installGuideId": "tshirt_graphic"
+    },
+    {
+      "id": "wallpaper_swatch",
+      "name": "Wallpaper Swatch",
+      "description": "Tileable wallpaper-style swatch texture.",
+      "category": "build",
+      "blenderScene": "wallpaper_swatch.blend",
+      "textureWidth": 512,
+      "textureHeight": 512,
+      "basePackage": "bases/wallpaper_swatch.package",
+      "textureResource": {
+        "type": "0x2f7d0006",
+        "group": "0x00000000",
+        "instance": "0x8000000000000004"
+      },
+      "installGuideId": "wallpaper_swatch"
+    }
+  ]
+}
