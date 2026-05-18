@@ -1,8 +1,9 @@
-"""Convert PNG to DDS (BC3/DXT5) for Sims 4 texture resources."""
+"""Convert PNG to DDS (BC3) for Sims 4 texture resources."""
 from __future__ import annotations
 
 import os
 import shutil
+import struct
 import subprocess
 from pathlib import Path
 
@@ -27,7 +28,41 @@ def find_texconv() -> str | None:
     return None
 
 
-def png_to_dds(png_path: Path, width: int, height: int) -> bytes:
+def sims4ize_dds(dds_bytes: bytes, reference: bytes | None = None) -> bytes:
+    """
+    Make texconv output compatible with Sims 4 DST5 textures.
+
+    With a reference, keep the template header (per swatch) and replace the full
+    mip chain from texconv. Do not mix mip0 from one image with lower mips from
+    another — that causes multicolor garbage in-game.
+    """
+    if dds_bytes[:4] != b"DDS ":
+        raise ValueError("Not a DDS file")
+
+    if reference is not None:
+        if len(reference) != len(dds_bytes):
+            raise ValueError(
+                f"DDS size mismatch: generated {len(dds_bytes)} bytes, "
+                f"template {len(reference)} bytes"
+            )
+        if reference[:4] != b"DDS ":
+            raise ValueError("Reference is not a DDS file")
+        buf = bytearray(reference[:128] + dds_bytes[128:])
+    else:
+        buf = bytearray(dds_bytes)
+
+    buf[84:88] = b"DST5"
+    struct.pack_into("<I", buf, 24, 0)
+    return bytes(buf)
+
+
+def png_to_dds(
+    png_path: Path,
+    width: int,
+    height: int,
+    *,
+    reference_dds: bytes | None = None,
+) -> bytes:
     """BC3_UNORM DDS bytes sized for Sims 4 rug-style textures."""
     texconv = find_texconv()
     if not texconv:
@@ -48,6 +83,9 @@ def png_to_dds(png_path: Path, width: int, height: int) -> bytes:
             "-y",
             "-f",
             "BC3_UNORM",
+            "-srgbi",
+            "-m",
+            "10",
             "-w",
             str(width),
             "-h",
@@ -63,4 +101,4 @@ def png_to_dds(png_path: Path, width: int, height: int) -> bytes:
     dds_files = list(out_dir.glob("*.dds"))
     if not dds_files:
         raise RuntimeError("texconv did not produce a DDS file")
-    return dds_files[0].read_bytes()
+    return sims4ize_dds(dds_files[0].read_bytes(), reference_dds)

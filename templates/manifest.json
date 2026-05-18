@@ -20,12 +20,14 @@
     {
       "id": "rug",
       "name": "PS Flokati Rug",
-      "description": "Licensed Flokati-style rug — your image replaces all 33 color swatches.",
+      "description": "Licensed Flokati-style rug — your image replaces 512×512 color swatches (normal map left intact).",
       "category": "decor",
       "blenderScene": "rug.blend",
       "textureWidth": 512,
       "textureHeight": 512,
       "textureFormat": "dds",
+      "patchAllPackageDds": true,
+      "ddsPatchWidths": [512],
       "basePackage": "bases/rug.package",
       "textureResource": {
         "type": "0x00b2d882",

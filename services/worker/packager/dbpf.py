@@ -19,7 +19,7 @@ COMPRESSION_NONE = 0x0000
 RESOURCE_TYPE_PNG = 0x2F7D0006
 
 
-@dataclass
+@dataclass(frozen=True)
 class ResourceKey:
     type_id: int
     group_id: int
@@ -155,7 +155,8 @@ def parse_package(path: Path) -> tuple[bytes, list[IndexEntry]]:
             )
         )
 
-    header = data[: index_offset]
+    header_end = min((e.offset for e in entries), default=index_offset)
+    header = data[:header_end]
     return header, entries
 
 
@@ -177,13 +178,14 @@ def _compress_resource(payload: bytes) -> tuple[bytes, int]:
 
 
 def write_package(path: Path, header_prefix: bytes, entries: list[IndexEntry]) -> None:
-    """Rebuild package with updated resource blobs and index."""
+    """Rebuild package: header + resource blobs + index (Sims 4 / Maxis layout)."""
     resource_blobs: list[bytes] = []
     new_entries: list[IndexEntry] = []
 
     cursor = len(header_prefix)
     for entry in entries:
         blob, compression = _compress_resource(entry.data)
+        use_ext = entry.extended or compression != COMPRESSION_NONE
         new_entries.append(
             IndexEntry(
                 key=entry.key,
@@ -192,7 +194,7 @@ def write_package(path: Path, header_prefix: bytes, entries: list[IndexEntry]) -
                 uncompressed_size=len(entry.data),
                 compression=compression,
                 committed=entry.committed,
-                extended=True,
+                extended=use_ext,
                 data=entry.data,
             )
         )
@@ -210,11 +212,12 @@ def write_package(path: Path, header_prefix: bytes, entries: list[IndexEntry]) -
         index_body += struct.pack("<I", entry.key.instance_high)
         index_body += struct.pack("<I", entry.key.instance_low)
         index_body += struct.pack("<I", entry.offset)
-        size_field = entry.compressed_size | 0x80000000
+        size_field = entry.compressed_size | (0x80000000 if entry.extended else 0)
         index_body += struct.pack("<I", size_field)
         index_body += struct.pack("<I", entry.uncompressed_size)
-        index_body += struct.pack("<H", entry.compression)
-        index_body += struct.pack("<H", entry.committed)
+        if entry.extended:
+            index_body += struct.pack("<H", entry.compression)
+            index_body += struct.pack("<H", entry.committed)
 
     index_count = len(new_entries)
     index_size = len(index_body)
@@ -224,9 +227,10 @@ def write_package(path: Path, header_prefix: bytes, entries: list[IndexEntry]) -
         header.extend(b"\x00" * (0x50 - len(header)))
 
     struct.pack_into("<I", header, 0x24, index_count)
-    struct.pack_into("<I", header, 0x2C, 0)
-    struct.pack_into("<I", header, 0x30, index_size)
-    struct.pack_into("<Q", header, 0x44, index_start)
+    struct.pack_into("<I", header, 0x2C, index_size)
+    struct.pack_into("<I", header, 0x30, 0)
+    struct.pack_into("<I", header, 0x40, index_start)
+    struct.pack_into("<Q", header, 0x44, 0)
 
     out = bytes(header) + b"".join(resource_blobs) + bytes(index_body)
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -265,21 +269,111 @@ def patch_package_textures(
     targets: list[ResourceKey],
     texture_bytes: bytes,
 ) -> int:
-    if not targets:
+    key_to_data = {k: texture_bytes for k in targets}
+    return patch_package_textures_map(base_package, output_package, key_to_data)
+
+
+def dds_dimensions(dds_bytes: bytes) -> tuple[int, int]:
+    if len(dds_bytes) < 20 or dds_bytes[:4] != b"DDS ":
+        raise ValueError("Not a DDS payload")
+    height = struct.unpack_from("<I", dds_bytes, 12)[0]
+    width = struct.unpack_from("<I", dds_bytes, 16)[0]
+    return width, height
+
+
+def patch_package_textures_map(
+    base_package: Path,
+    output_package: Path,
+    key_to_data: dict[ResourceKey, bytes],
+) -> int:
+    """Patch textures; unchanged resources keep original compressed bytes from base file."""
+    if not key_to_data:
         raise ValueError("No texture targets provided")
+
+    original = base_package.read_bytes()
     header, entries = parse_package(base_package)
-    target_set = list(targets)
+    target_keys = list(key_to_data.keys())
     replaced = 0
+
     for entry in entries:
-        for t in target_set:
-            if entry.key.matches(t):
-                entry.data = texture_bytes
+        for key, data in key_to_data.items():
+            if entry.key.matches(key):
+                entry.data = data
                 replaced += 1
                 break
+
     if replaced == 0:
         raise ValueError(f"No matching textures in {base_package.name}")
-    write_package(output_package, header, entries)
+
+    resource_blobs: list[bytes] = []
+    new_entries: list[IndexEntry] = []
+    cursor = len(header)
+
+    for entry in entries:
+        is_patched = any(entry.key.matches(k) for k in target_keys)
+        if is_patched:
+            blob, compression = _compress_resource(entry.data)
+            extended = True
+        else:
+            blob = original[entry.offset : entry.offset + entry.compressed_size]
+            compression = entry.compression
+            extended = entry.extended
+
+        new_entries.append(
+            IndexEntry(
+                key=entry.key,
+                offset=cursor,
+                compressed_size=len(blob),
+                uncompressed_size=entry.uncompressed_size if not is_patched else len(entry.data),
+                compression=compression,
+                committed=entry.committed,
+                extended=extended,
+                data=entry.data,
+            )
+        )
+        resource_blobs.append(blob)
+        cursor += len(blob)
+
+    write_package_from_entries(output_package, header, new_entries, resource_blobs)
     return replaced
+
+
+def write_package_from_entries(
+    path: Path,
+    header_prefix: bytes,
+    entries: list[IndexEntry],
+    resource_blobs: list[bytes],
+) -> None:
+    index_start = sum(len(b) for b in resource_blobs) + len(header_prefix)
+    flags = 0
+    index_body = bytearray()
+    index_body += struct.pack("<I", flags)
+
+    for entry, blob in zip(entries, resource_blobs):
+        index_body += struct.pack("<I", entry.key.type_id)
+        index_body += struct.pack("<I", entry.key.group_id)
+        index_body += struct.pack("<I", entry.key.instance_high)
+        index_body += struct.pack("<I", entry.key.instance_low)
+        index_body += struct.pack("<I", entry.offset)
+        size_field = entry.compressed_size | (0x80000000 if entry.extended else 0)
+        index_body += struct.pack("<I", size_field)
+        index_body += struct.pack("<I", entry.uncompressed_size)
+        if entry.extended:
+            index_body += struct.pack("<H", entry.compression)
+            index_body += struct.pack("<H", entry.committed)
+
+    header = bytearray(header_prefix)
+    if len(header) < 0x50:
+        header.extend(b"\x00" * (0x50 - len(header)))
+
+    struct.pack_into("<I", header, 0x24, len(entries))
+    struct.pack_into("<I", header, 0x2C, len(index_body))
+    struct.pack_into("<I", header, 0x30, 0)
+    struct.pack_into("<I", header, 0x40, index_start)
+    struct.pack_into("<Q", header, 0x44, 0)
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(bytes(header) + b"".join(resource_blobs) + bytes(index_body))
 
 
 def create_minimal_texture_package(

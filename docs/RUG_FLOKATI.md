@@ -4,7 +4,8 @@ The file `templates/bases/rug.package` is **PS Flokati 2** from your licensed CC
 
 ## What SimForge does
 
-- Replaces **33** DDS textures (512×512, all color swatches) with your user’s image (converted to DDS via `texconv`).
+- Replaces **33** DDS color swatches (512×512 only). The shared **256×256** map is a normal/detail channel and must not be overwritten (doing so causes brown + multicolor garbage in-game).
+- Converts via `texconv`, then **DST5** headers per swatch (plain `DXT5` breaks in-game).
 - Outputs a **new** `.package` for the player’s Mods folder.
 
 ## Requirements

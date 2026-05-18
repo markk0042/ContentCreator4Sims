@@ -6,9 +6,14 @@ import sys
 from pathlib import Path
 
 
+def _is_png(data: bytes) -> bool:
+    return len(data) >= 8 and data[:8] == b"\x89PNG\r\n\x1a\n"
+
+
 def to_png(input_path: Path, output_path: Path) -> None:
-    if input_path.suffix.lower() == ".png":
-        output_path.write_bytes(input_path.read_bytes())
+    raw = input_path.read_bytes()
+    if _is_png(raw):
+        output_path.write_bytes(raw)
         return
 
     if sys.platform == "win32":
